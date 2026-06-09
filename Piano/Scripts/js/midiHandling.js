@@ -1218,6 +1218,9 @@ function PlayNote(note, elapsed, recording = 0) {
 }
 
 function DisplayTime(actualTime, content) {
+    //When I come back to the piano after leaving it, the displayed time now can't exceed the maximum value
+    actualTime = Math.min(actualTime, totalTime);
+
     let seconds = Math.floor(actualTime % 60);
     if (seconds < 10) seconds = '0' + seconds.toString();
     const time = Math.floor(actualTime / 60) + ':' + seconds;
@@ -1236,6 +1239,9 @@ window.addEventListener('focus', () => {
     if (!isPlaying) return;
     StopBackgroundPlayback();
     ShowLastLyric();
+
+    //It is supposed to be automatically launched since when we quit the window the UpdateTime method was running but in case it doesn't work I run it again to be sure and it also updates the DisplayTime method which is cool
+    UpdateTime();
 });
 
 function PlayInBackground() {
@@ -1258,13 +1264,23 @@ function PlayInBackground() {
         PlayNote(note, elapsed, 1);
     }
 
-    if (noteQueue.length == 0) isPlaying = false;
-    else {
-        const len = noteQueue.length - 1;
-        timeouts.push(setTimeout(() => {
-            isPlaying = false;
-        }, (noteQueue[len][0] + noteQueue[len][2]) * 1000 / speedValue));
-    }
+    const len = noteQueue.length - 1;
+    //If the noteQueue is empty we can't use it as a reference for the end time so we use the totalTime instead
+    const endTime = noteQueue.length ? noteQueue[len][0] + noteQueue[len][2] : totalTime;
+    timeouts.push(setTimeout(() => {
+        isPlaying = false;
+
+        if (isLooped) {
+            StartMusic();
+
+            for (const timeout of timeouts) {
+                clearTimeout(timeout);
+            }
+            timeouts.length = 0;
+
+            PlayInBackground();
+        }
+    }, (endTime - elapsed) * 1000 / speedValue));
 
     noteQueue = [];
 }
