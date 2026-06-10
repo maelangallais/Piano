@@ -1251,11 +1251,12 @@ function PlayInBackground() {
     if (btnTogglingSustainMode.checked) {
         for (let i = 0; i < sustainQueue.length; i++) {
             const mode = sustainQueue[i];
-            if (sustainMode != mode[1]) {
-                timeouts.push(setTimeout(() => {
+            timeouts.push(setTimeout(() => {
+                //We check if the sutainMode changes in the future (in the timeout) not comparing it to now
+                if (sustainMode != mode[1]) {
                     ToggleSustainMode();
-                }, (mode[0] - elapsed) * 1000 / speedValue));
-            }
+                }
+            }, (mode[0] - elapsed) * 1000 / speedValue));
         }
     }
 
@@ -1268,6 +1269,9 @@ function PlayInBackground() {
     //If the noteQueue is empty we can't use it as a reference for the end time so we use the totalTime instead
     const endTime = noteQueue.length ? noteQueue[len][0] + noteQueue[len][2] : totalTime;
     timeouts.push(setTimeout(() => {
+        //When I 'refocus' the window it launches the UpdateTime method which display the correct time and update the progressSlider but only if isPlaying is true, if it is not playing ANYMORE, nothing is updated, so I update it before setting isPlaying = false
+        UpdateTime();
+
         isPlaying = false;
 
         if (isLooped) {
@@ -1283,6 +1287,7 @@ function PlayInBackground() {
     }, (endTime - elapsed) * 1000 / speedValue));
 
     noteQueue = [];
+    sustainQueue = [];
 }
 function StopBackgroundPlayback() {
     for (const timeout of timeouts) {
